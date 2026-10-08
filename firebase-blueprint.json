@@ -1,0 +1,267 @@
+{
+  "entities": {
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Represents a warehouse inventory item with SKU, barcode, quantity, pricing, and zone location.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the authenticated user who owns this item."
+        },
+        "sku": {
+          "type": "string",
+          "description": "Unique Stock Keeping Unit identifier."
+        },
+        "barcode": {
+          "type": "string",
+          "description": "EAN/UPC/QR/Code128 barcode string."
+        },
+        "name": {
+          "type": "string",
+          "description": "Product name."
+        },
+        "category": {
+          "type": "string",
+          "description": "Warehouse category (e.g., Elektronik, Otomotif, Logistik, Bahan Baku, Farmasi, Umum)."
+        },
+        "zone": {
+          "type": "string",
+          "description": "Warehouse zone (e.g., Zona A - Fast Moving, Zona B - Bulk Storage, Zona C - Cold Chain, Zona D - Hazmat/Khusus)."
+        },
+        "aisle": {
+          "type": "string",
+          "description": "Aisle and rack bin location (e.g., A-01-R2)."
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Current stock quantity in units."
+        },
+        "minStock": {
+          "type": "integer",
+          "description": "Minimum threshold before low-stock alert triggers."
+        },
+        "maxStock": {
+          "type": "integer",
+          "description": "Maximum target capacity for this SKU."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measurement (Pcs, Box, Pallet, Kg, Liter)."
+        },
+        "unitCost": {
+          "type": "number",
+          "description": "Cost price per unit in IDR."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Selling/valuation price per unit in IDR."
+        },
+        "supplierName": {
+          "type": "string",
+          "description": "Primary supplier name."
+        },
+        "batchNumber": {
+          "type": "string",
+          "description": "Current batch or lot number."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation (must use FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update (must use FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "sku",
+        "barcode",
+        "name",
+        "category",
+        "zone",
+        "aisle",
+        "quantity",
+        "minStock",
+        "maxStock",
+        "unit",
+        "unitCost",
+        "unitPrice",
+        "supplierName",
+        "batchNumber",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StockMovement": {
+      "title": "StockMovement",
+      "description": "Records an inbound, outbound, adjustment, or transfer stock transaction.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the authenticated user who recorded this transaction."
+        },
+        "itemId": {
+          "type": "string",
+          "description": "Document ID of the associated InventoryItem."
+        },
+        "itemName": {
+          "type": "string",
+          "description": "Snapshot of the item name."
+        },
+        "sku": {
+          "type": "string",
+          "description": "Snapshot of the item SKU."
+        },
+        "barcode": {
+          "type": "string",
+          "description": "Snapshot of the item barcode."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["INBOUND", "OUTBOUND", "ADJUSTMENT", "TRANSFER"],
+          "description": "Type of stock movement."
+        },
+        "quantityDelta": {
+          "type": "integer",
+          "description": "Absolute quantity moved or adjusted."
+        },
+        "previousQty": {
+          "type": "integer",
+          "description": "Stock quantity before transaction."
+        },
+        "newQty": {
+          "type": "integer",
+          "description": "Stock quantity after transaction."
+        },
+        "referenceDoc": {
+          "type": "string",
+          "description": "PO, DO, or Audit reference code."
+        },
+        "zone": {
+          "type": "string",
+          "description": "Warehouse zone involved."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Operational notes or reason for movement."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of transaction (must use FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "itemId",
+        "itemName",
+        "sku",
+        "barcode",
+        "type",
+        "quantityDelta",
+        "previousQty",
+        "newQty",
+        "referenceDoc",
+        "zone",
+        "notes",
+        "createdAt"
+      ]
+    },
+    "AuditSession": {
+      "title": "AuditSession",
+      "description": "Records a stock opname / cycle count audit check for an item.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the authenticated user."
+        },
+        "sessionCode": {
+          "type": "string",
+          "description": "Audit batch code (e.g., OPN-2026-10)."
+        },
+        "zone": {
+          "type": "string",
+          "description": "Target warehouse zone audited."
+        },
+        "itemId": {
+          "type": "string",
+          "description": "Audited item document ID."
+        },
+        "itemName": {
+          "type": "string",
+          "description": "Audited item name."
+        },
+        "barcode": {
+          "type": "string",
+          "description": "Scanned barcode during audit."
+        },
+        "systemQty": {
+          "type": "integer",
+          "description": "Expected system quantity at audit time."
+        },
+        "countedQty": {
+          "type": "integer",
+          "description": "Physically counted quantity."
+        },
+        "discrepancy": {
+          "type": "integer",
+          "description": "Difference (countedQty - systemQty)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["MATCHED", "DISCREPANCY_RESOLVED", "DISCREPANCY_PENDING"],
+          "description": "Audit verification status."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Auditor remarks."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of audit entry."
+        }
+      },
+      "required": [
+        "userId",
+        "sessionCode",
+        "zone",
+        "itemId",
+        "itemName",
+        "barcode",
+        "systemQty",
+        "countedQty",
+        "discrepancy",
+        "status",
+        "notes",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/inventory_items/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/InventoryItem"
+      },
+      "description": "Warehouse inventory items owned by the authenticated user."
+    },
+    "/users/{userId}/stock_movements/{movementId}": {
+      "schema": {
+        "$ref": "#/entities/StockMovement"
+      },
+      "description": "Immutable ledger of stock movements (Inbound, Outbound, Adjustment, Transfer) for the user."
+    },
+    "/users/{userId}/audit_logs/{auditId}": {
+      "schema": {
+        "$ref": "#/entities/AuditSession"
+      },
+      "description": "Stock opname and cycle count audit records for the user."
+    }
+  }
+}

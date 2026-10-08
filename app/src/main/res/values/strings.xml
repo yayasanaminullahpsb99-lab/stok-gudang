@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">StokGudang Pro</string>
+    <string name="app_subtitle">Sistem Manajemen Inventaris &amp; Analitik Gudang</string>
+    <string name="sign_in_google">Masuk dengan Google</string>
+    <string name="sign_out">Keluar Akun</string>
+    <string name="nav_dashboard">Analitik</string>
+    <string name="nav_inventory">Inventaris</string>
+    <string name="nav_scanner">Pemindai</string>
+    <string name="nav_movements">Mutasi</string>
+    <string name="nav_audit">Opname</string>
+    <string name="seed_demo_warehouse">Muat Data Gudang Standar</string>
+    <string name="add_new_sku">Tambah SKU Baru</string>
+    <string name="scan_barcode_action">Pindai Barcode / QR</string>
+    <string name="camera_permission_title">Izin Kamera Diperlukan untuk Pemindai Laser</string>
+    <string name="camera_permission_desc">Berikan izin kamera untuk memindai EAN-13, Code-128, atau QR Code secara langsung, atau gunakan input kode manual di bawah.</string>
+    <string name="grant_camera_permission">Aktifkan Kamera</string>
+</resources>

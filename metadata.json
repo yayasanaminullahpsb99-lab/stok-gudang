@@ -1,0 +1,6 @@
+{
+  "name": "StokGudang Pro",
+  "description": "Aplikasi manajemen inventaris gudang kompleks yang terintegrasi dengan pemindaian barcode dan analitik waktu nyata.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

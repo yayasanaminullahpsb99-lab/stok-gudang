@@ -1,0 +1,177 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. Entity Validation Helpers
+    function isValidInventoryItem(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 64 &&
+             data.barcode is string && data.barcode.size() >= 1 && data.barcode.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 80 &&
+             data.zone is string && data.zone.size() >= 1 && data.zone.size() <= 80 &&
+             data.aisle is string && data.aisle.size() >= 1 && data.aisle.size() <= 64 &&
+             data.quantity is int && data.quantity >= 0 && data.quantity <= 10000000 &&
+             data.minStock is int && data.minStock >= 0 && data.minStock <= 10000000 &&
+             data.maxStock is int && data.maxStock >= 1 && data.maxStock <= 10000000 &&
+             data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 32 &&
+             (data.unitCost is int || data.unitCost is float) && data.unitCost >= 0 &&
+             (data.unitPrice is int || data.unitPrice is float) && data.unitPrice >= 0 &&
+             data.supplierName is string && data.supplierName.size() <= 150 &&
+             data.batchNumber is string && data.batchNumber.size() <= 80;
+    }
+
+    function isValidStockMovement(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 &&
+             data.itemName is string && data.itemName.size() >= 1 && data.itemName.size() <= 200 &&
+             data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 64 &&
+             data.barcode is string && data.barcode.size() >= 1 && data.barcode.size() <= 128 &&
+             data.type is string && (data.type == 'INBOUND' || data.type == 'OUTBOUND' || data.type == 'ADJUSTMENT' || data.type == 'TRANSFER') &&
+             data.quantityDelta is int && data.quantityDelta >= 0 && data.quantityDelta <= 10000000 &&
+             data.previousQty is int && data.previousQty >= 0 && data.previousQty <= 10000000 &&
+             data.newQty is int && data.newQty >= 0 && data.newQty <= 10000000 &&
+             data.referenceDoc is string && data.referenceDoc.size() >= 1 && data.referenceDoc.size() <= 100 &&
+             data.zone is string && data.zone.size() >= 1 && data.zone.size() <= 80 &&
+             data.notes is string && data.notes.size() <= 500;
+    }
+
+    function isValidAuditSession(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.sessionCode is string && data.sessionCode.size() >= 1 && data.sessionCode.size() <= 64 &&
+             data.zone is string && data.zone.size() >= 1 && data.zone.size() <= 80 &&
+             data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 &&
+             data.itemName is string && data.itemName.size() >= 1 && data.itemName.size() <= 200 &&
+             data.barcode is string && data.barcode.size() >= 1 && data.barcode.size() <= 128 &&
+             data.systemQty is int && data.systemQty >= 0 && data.systemQty <= 10000000 &&
+             data.countedQty is int && data.countedQty >= 0 && data.countedQty <= 10000000 &&
+             data.discrepancy is int && data.discrepancy >= -10000000 && data.discrepancy <= 10000000 &&
+             data.status is string && (data.status == 'MATCHED' || data.status == 'DISCREPANCY_RESOLVED' || data.status == 'DISCREPANCY_PENDING') &&
+             data.notes is string && data.notes.size() <= 500;
+    }
+
+    // 4. User-Scoped Collections
+    match /users/{userId}/inventory_items/{itemId} {
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(itemId) && request.auth.uid == userId && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && request.auth.uid == userId && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       request.auth.uid == userId &&
+                       isValidInventoryItem(incoming()) &&
+                       incoming().keys().hasAll([
+                         'userId', 'sku', 'barcode', 'name', 'category', 'zone', 'aisle',
+                         'quantity', 'minStock', 'maxStock', 'unit', 'unitCost', 'unitPrice',
+                         'supplierName', 'batchNumber', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'sku', 'barcode', 'name', 'category', 'zone', 'aisle',
+                         'quantity', 'minStock', 'maxStock', 'unit', 'unitCost', 'unitPrice',
+                         'supplierName', 'batchNumber', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(itemId) &&
+                       request.auth.uid == userId &&
+                       isValidInventoryItem(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         // Action 1: Stock Quantity & Zone Update (Inbound/Outbound/Transfer/Adjustment)
+                         incoming().diff(existing()).affectedKeys().hasOnly(['quantity', 'zone', 'aisle', 'batchNumber', 'updatedAt']) ||
+                         // Action 2: Full Item Metadata Edit
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'sku', 'barcode', 'name', 'category', 'zone', 'aisle',
+                           'quantity', 'minStock', 'maxStock', 'unit', 'unitCost', 'unitPrice',
+                           'supplierName', 'batchNumber', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(itemId) && request.auth.uid == userId && existing().userId == request.auth.uid;
+    }
+
+    match /users/{userId}/stock_movements/{movementId} {
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(movementId) && request.auth.uid == userId && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && request.auth.uid == userId && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(movementId) &&
+                       request.auth.uid == userId &&
+                       isValidStockMovement(incoming()) &&
+                       incoming().keys().hasAll([
+                         'userId', 'itemId', 'itemName', 'sku', 'barcode', 'type',
+                         'quantityDelta', 'previousQty', 'newQty', 'referenceDoc',
+                         'zone', 'notes', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'itemId', 'itemName', 'sku', 'barcode', 'type',
+                         'quantityDelta', 'previousQty', 'newQty', 'referenceDoc',
+                         'zone', 'notes', 'createdAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+
+      // Stock movements are an immutable ledger
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(movementId) && request.auth.uid == userId && existing().userId == request.auth.uid;
+    }
+
+    match /users/{userId}/audit_logs/{auditId} {
+      allow get: if isSignedIn() && isValidId(userId) && isValidId(auditId) && request.auth.uid == userId && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && request.auth.uid == userId && existing().userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(auditId) &&
+                       request.auth.uid == userId &&
+                       isValidAuditSession(incoming()) &&
+                       incoming().keys().hasAll([
+                         'userId', 'sessionCode', 'zone', 'itemId', 'itemName', 'barcode',
+                         'systemQty', 'countedQty', 'discrepancy', 'status', 'notes', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'sessionCode', 'zone', 'itemId', 'itemName', 'barcode',
+                         'systemQty', 'countedQty', 'discrepancy', 'status', 'notes', 'createdAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidId(auditId) &&
+                       request.auth.uid == userId &&
+                       isValidAuditSession(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && isValidId(auditId) && request.auth.uid == userId && existing().userId == request.auth.uid;
+    }
+  }
+}
